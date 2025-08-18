@@ -25,3 +25,9 @@ class CustomUser(AbstractUser):
         return self.username
     
     objects = CustomUserManager()
+
+    def can_create(self):
+        return self.is_staff or self.is_superuser
+    
+    def can_delete(self):
+        return self.is_superuser
