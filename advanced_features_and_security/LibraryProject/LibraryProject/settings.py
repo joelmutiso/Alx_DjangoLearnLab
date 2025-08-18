@@ -88,6 +88,18 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_SECURE = True
 
+# ------------------ HTTPS enforcement ------------------
+# Redirect all HTTP to HTTPS
+SECURE_SSL_REDIRECT = not DEBUG
+
+# HTTP Strict Transport Security (HSTS) — enable only in prod and once HTTPS is confirmed working
+SECURE_HSTS_SECONDS = 31536000 if not DEBUG else 0  # 1 year
+SECURE_HSTS_INCLUDE_SUBDOMAINS = not DEBUG
+SECURE_HSTS_PRELOAD = not DEBUG
+
+# ------------------ Secure cookies ------------------
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
