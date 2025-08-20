@@ -17,7 +17,7 @@ class BookSerializer(serializers.ModelSerializer):
 # Serializer for the Author model.
 class AuthorSerializer(serializers.ModelSerializer):
     # This nested field handles the one-to-many relationship, serializing all of an author's books.
-    books = BookSerializer(many=True, read_only=True,)
+    books = BookSerializer(many=True, read_only=True)
 
     class Meta:
         model = Author
