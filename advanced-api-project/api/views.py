@@ -1,36 +1,11 @@
-from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
+from rest_framework import generics
 from .models import Book
+from .serializers import BookSerializer
 
-class BookListView(ListView):
-    """
-    A view to retrieve a list of all books.
-    """
-    model = Book
+class BookListCreateView(generics.ListCreateAPIView):
     queryset = Book.objects.all()
+    serializer_class = BookSerializer
 
-class BookDetailView(DetailView):
-    """
-    A view to retrieve a single book by its ID.
-    """
-    model = Book
-
-class BookCreateView(CreateView):
-    """
-    A view to create a new book.
-    """
-    model = Book
-    fields = ['title', 'publication_year', 'author']
-
-class BookUpdateView(UpdateView):
-    """
-    A view to update an existing book.
-    """
-    model = Book
-    fields = ['title', 'publication_year', 'author']
-
-class BookDeleteView(DeleteView):
-    """
-    A view to delete a book.
-    """
-    model = Book
-    success_url = '/books/'
+class BookRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Book.objects.all()
+    serializer_class = BookSerializer
