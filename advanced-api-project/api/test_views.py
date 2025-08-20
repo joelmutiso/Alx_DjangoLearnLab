@@ -14,7 +14,6 @@ class BookAPITests(APITestCase):
         """
         # Create a test user for authenticated requests
         self.user = User.objects.create_user(username='testuser', password='testpassword')
-        self.token = self.get_token(self.user)
 
         # Create author and book instances for testing
         self.author1 = Author.objects.create(name="Chinua Achebe")
@@ -22,14 +21,6 @@ class BookAPITests(APITestCase):
         self.book1 = Book.objects.create(title="Things Fall Apart", author=self.author1, publication_year=1958)
         self.book2 = Book.objects.create(title="Beloved", author=self.author2, publication_year=1987)
         self.book3 = Book.objects.create(title="The River Between", author=self.author1, publication_year=1965)
-        
-    def get_token(self, user):
-        """
-        Helper method to get an authentication token for a user.
-        """
-        from rest_framework.authtoken.models import Token
-        token, _ = Token.objects.get_or_create(user=user)
-        return token.key
         
     def test_list_books(self):
         """
@@ -51,7 +42,8 @@ class BookAPITests(APITestCase):
         """
         Ensure a new book can be created by an authenticated user.
         """
-        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.token}')
+        # Use self.client.login() to authenticate the user
+        self.client.login(username='testuser', password='testpassword')
         data = {'title': 'New Book Title', 'author': self.author2.id, 'publication_year': 2024}
         response = self.client.post('/api/books/create/', data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -69,7 +61,7 @@ class BookAPITests(APITestCase):
         """
         Ensure an existing book can be updated by an authenticated user.
         """
-        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.token}')
+        self.client.login(username='testuser', password='testpassword')
         updated_data = {'title': 'Updated Title', 'author': self.author1.id, 'publication_year': 2020}
         response = self.client.put(f'/api/books/update/{self.book1.id}/', updated_data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -80,7 +72,7 @@ class BookAPITests(APITestCase):
         """
         Ensure an existing book can be deleted by an authenticated user.
         """
-        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.token}')
+        self.client.login(username='testuser', password='testpassword')
         response = self.client.delete(f'/api/books/delete/{self.book1.id}/')
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertEqual(Book.objects.count(), 2)
@@ -109,7 +101,6 @@ class BookAPITests(APITestCase):
         """
         response = self.client.get('/api/books/', {'ordering': '-publication_year'})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        # Check if the books are in the correct order: 1987, 1965, 1958
         self.assertEqual(response.data[0]['publication_year'], 1987)
         self.assertEqual(response.data[1]['publication_year'], 1965)
         self.assertEqual(response.data[2]['publication_year'], 1958)
