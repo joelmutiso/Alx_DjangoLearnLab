@@ -24,6 +24,7 @@
             <h3>Comments ({{ object.comments.count }})</h3>
             {% if user.is_authenticated %}
                 <div class="comment-form-container">
+                    <!-- The form action is updated to the new class-based view URL -->
                     <form method="post" action="{% url 'add-comment' object.pk %}">
                         {% csrf_token %}
                         {{ comment_form.as_p }}
@@ -58,3 +59,4 @@
         </div>
     </div>
 {% endblock %}
+

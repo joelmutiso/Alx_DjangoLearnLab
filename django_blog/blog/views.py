@@ -12,7 +12,7 @@ from django.views.generic import (
     DeleteView
 )
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
 from django.http import HttpResponseForbidden
 
 class PostListView(ListView):
@@ -22,8 +22,7 @@ class PostListView(ListView):
     model = Post
     template_name = 'blog/post_list.html'
     context_object_name = 'posts'
-    # Corrected the field name from date_posted to published_date
-    ordering = ['-published_date']
+    ordering = ['-date_posted']
 
 class PostDetailView(DetailView):
     """
@@ -71,57 +70,47 @@ class PostDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
         post = self.get_object()
         return self.request.user == post.author
 
-@login_required
-def add_comment_to_post(request, pk):
-    """
-    Handles adding a new comment to a specific post.
-    """
-    post = get_object_or_404(Post, pk=pk)
-    if request.method == "POST":
-        form = CommentForm(request.POST)
-        if form.is_valid():
-            comment = form.save(commit=False)
-            comment.post = post
-            comment.author = request.user
-            comment.save()
-            return redirect('post-detail', pk=post.pk)
-    return redirect('post-detail', pk=post.pk)
-
-@login_required
-def edit_comment(request, pk):
-    """
-    Allows a user to edit their own comment.
-    """
-    comment = get_object_or_404(Comment, pk=pk)
-    if request.user != comment.author:
-        return HttpResponseForbidden("You are not allowed to edit this comment.")
+# Class-based views for comments
+class CommentCreateView(LoginRequiredMixin, CreateView):
+    model = Comment
+    form_class = CommentForm
+    template_name = 'blog/comment_form.html'
     
-    if request.method == "POST":
-        form = CommentForm(request.POST, instance=comment)
-        if form.is_valid():
-            form.save()
-            return redirect('post-detail', pk=comment.post.pk)
-    else:
-        form = CommentForm(instance=comment)
-    
-    return render(request, 'blog/comment_form.html', {'form': form})
+    def form_valid(self, form):
+        post = get_object_or_404(Post, pk=self.kwargs['pk'])
+        form.instance.post = post
+        form.instance.author = self.request.user
+        return super().form_valid(form)
 
-@login_required
-def delete_comment(request, pk):
-    """
-    Allows a user to delete their own comment.
-    """
-    comment = get_object_or_404(Comment, pk=pk)
-    if request.user != comment.author:
-        return HttpResponseForbidden("You are not allowed to delete this comment.")
-    
-    if request.method == "POST":
-        comment.delete()
-        return redirect('post-detail', pk=comment.post.pk)
-    
-    return render(request, 'blog/comment_confirm_delete.html', {'comment': comment})
+    def get_success_url(self):
+        return reverse('post-detail', kwargs={'pk': self.kwargs['pk']})
 
+class CommentUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+    model = Comment
+    form_class = CommentForm
+    template_name = 'blog/comment_form.html'
+    
+    def test_func(self):
+        comment = self.get_object()
+        return self.request.user == comment.author
+        
+    def get_success_url(self):
+        comment = self.get_object()
+        return reverse('post-detail', kwargs={'pk': comment.post.pk})
 
+class CommentDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
+    model = Comment
+    template_name = 'blog/comment_confirm_delete.html'
+
+    def test_func(self):
+        comment = self.get_object()
+        return self.request.user == comment.author
+
+    def get_success_url(self):
+        comment = self.get_object()
+        return reverse_lazy('post-detail', kwargs={'pk': comment.post.pk})
+
+# The following functions are still needed for authentication
 def register_view(request):
     """Handles user registration."""
     if request.method == 'POST':
