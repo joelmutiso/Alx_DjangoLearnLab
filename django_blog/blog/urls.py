@@ -17,6 +17,11 @@ urlpatterns = [
     path('post/<int:pk>/update/', PostUpdateView.as_view(), name='post-update'),
     path('post/<int:pk>/delete/', PostDeleteView.as_view(), name='post-delete'),
 
+    # Comment URLs
+    path('post/<int:pk>/comment/', views.add_comment_to_post, name='add-comment'),
+    path('comment/<int:pk>/edit/', views.edit_comment, name='edit-comment'),
+    path('comment/<int:pk>/delete/', views.delete_comment, name='delete-comment'),
+
     # User authentication paths
     path('register/', views.register_view, name='register'),
     path('profile/', views.profile_view, name='profile'),
@@ -24,4 +29,3 @@ urlpatterns = [
     path('login/', auth_views.LoginView.as_view(template_name='blog/login.html'), name='login'),
     path('logout/', auth_views.LogoutView.as_view(template_name='blog/logout.html'), name='logout'),
 ]
-

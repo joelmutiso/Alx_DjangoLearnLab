@@ -17,5 +17,44 @@
                 </div>
             {% endif %}
         </article>
+        
+        <hr>
+        
+        <div class="comments-section">
+            <h3>Comments ({{ object.comments.count }})</h3>
+            {% if user.is_authenticated %}
+                <div class="comment-form-container">
+                    <form method="post" action="{% url 'add-comment' object.pk %}">
+                        {% csrf_token %}
+                        {{ comment_form.as_p }}
+                        <button type="submit" class="btn">Add Comment</button>
+                    </form>
+                </div>
+            {% else %}
+                <p><a href="{% url 'login' %}">Log in</a> to leave a comment.</p>
+            {% endif %}
+
+            <div class="comment-list">
+                {% for comment in object.comments.all %}
+                    <div class="comment-item">
+                        <p class="comment-meta">
+                            <strong>{{ comment.author.username }}</strong> commented on {{ comment.created_at|date:"F d, Y" }}
+                        </p>
+                        <p>{{ comment.content }}</p>
+                        {% if comment.author == user %}
+                            <div class="comment-actions">
+                                <a href="{% url 'edit-comment' comment.pk %}" class="btn">Edit</a>
+                                <form method="post" action="{% url 'delete-comment' comment.pk %}" style="display:inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-delete">Delete</button>
+                                </form>
+                            </div>
+                        {% endif %}
+                    </div>
+                {% empty %}
+                    <p>No comments yet. Be the first to comment!</p>
+                {% endfor %}
+            </div>
+        </div>
     </div>
 {% endblock %}

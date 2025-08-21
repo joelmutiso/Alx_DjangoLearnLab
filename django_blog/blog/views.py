@@ -1,9 +1,9 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
-from .forms import PostForm, UserUpdateForm
-from .models import Post
+from .forms import PostForm, UserUpdateForm, CommentForm
+from .models import Post, Comment
 from django.views.generic import (
     ListView,
     DetailView,
@@ -12,6 +12,8 @@ from django.views.generic import (
     DeleteView
 )
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.urls import reverse_lazy
+from django.http import HttpResponseForbidden
 
 class PostListView(ListView):
     """
@@ -25,67 +27,103 @@ class PostListView(ListView):
 
 class PostDetailView(DetailView):
     """
-    Displays a single blog post in detail.
+    Displays a single blog post in detail along with its comments and a comment form.
     """
     model = Post
     template_name = 'blog/post_detail.html'
 
+    def get_context_data(self, **kwargs):
+        """Adds the comment form and comments to the context."""
+        context = super().get_context_data(**kwargs)
+        context['comment_form'] = CommentForm()
+        return context
+
+# Allows authenticated users to create a new post
 class PostCreateView(LoginRequiredMixin, CreateView):
-    """
-    Allows a logged-in user to create a new blog post.
-    """
     model = Post
     form_class = PostForm
     template_name = 'blog/post_form.html'
-    success_url = '/'
+    success_url = reverse_lazy('post-list')
 
     def form_valid(self, form):
-        """Sets the author of the post to the current logged-in user."""
         form.instance.author = self.request.user
         return super().form_valid(form)
 
 class PostUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
-    """
-    Allows a logged-in user to update their own blog post.
-    Requires that the user is the author of the post.
-    """
     model = Post
     form_class = PostForm
     template_name = 'blog/post_form.html'
     
     def form_valid(self, form):
-        """Sets the author of the post to the current logged-in user."""
         form.instance.author = self.request.user
         return super().form_valid(form)
 
     def test_func(self):
-        """Ensures that only the author can update the post."""
         post = self.get_object()
-        if self.request.user == post.author:
-            return True
-        return False
+        return self.request.user == post.author
 
 class PostDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
-    """
-    Allows a logged-in user to delete their own blog post.
-    Requires that the user is the author of the post.
-    """
     model = Post
     template_name = 'blog/post_confirm_delete.html'
-    success_url = '/'
+    success_url = reverse_lazy('post-list')
 
     def test_func(self):
-        """Ensures that only the author can delete the post."""
         post = self.get_object()
-        if self.request.user == post.author:
-            return True
-        return False
+        return self.request.user == post.author
 
-# The following functions are still needed for authentication
+@login_required
+def add_comment_to_post(request, pk):
+    """
+    Handles adding a new comment to a specific post.
+    """
+    post = get_object_or_404(Post, pk=pk)
+    if request.method == "POST":
+        form = CommentForm(request.POST)
+        if form.is_valid():
+            comment = form.save(commit=False)
+            comment.post = post
+            comment.author = request.user
+            comment.save()
+            return redirect('post-detail', pk=post.pk)
+    return redirect('post-detail', pk=post.pk)
+
+@login_required
+def edit_comment(request, pk):
+    """
+    Allows a user to edit their own comment.
+    """
+    comment = get_object_or_404(Comment, pk=pk)
+    if request.user != comment.author:
+        return HttpResponseForbidden("You are not allowed to edit this comment.")
+    
+    if request.method == "POST":
+        form = CommentForm(request.POST, instance=comment)
+        if form.is_valid():
+            form.save()
+            return redirect('post-detail', pk=comment.post.pk)
+    else:
+        form = CommentForm(instance=comment)
+    
+    return render(request, 'blog/comment_form.html', {'form': form})
+
+@login_required
+def delete_comment(request, pk):
+    """
+    Allows a user to delete their own comment.
+    """
+    comment = get_object_or_404(Comment, pk=pk)
+    if request.user != comment.author:
+        return HttpResponseForbidden("You are not allowed to delete this comment.")
+    
+    if request.method == "POST":
+        comment.delete()
+        return redirect('post-detail', pk=comment.post.pk)
+    
+    return render(request, 'blog/comment_confirm_delete.html', {'comment': comment})
+
+
 def register_view(request):
-    """
-    Handles user registration.
-    """
+    """Handles user registration."""
     if request.method == 'POST':
         form = UserCreationForm(request.POST)
         if form.is_valid():
@@ -98,16 +136,12 @@ def register_view(request):
 
 @login_required
 def profile_view(request):
-    """
-    Handles the user profile page.
-    """
+    """Handles the user profile page."""
     return render(request, 'blog/profile.html')
 
 @login_required
 def edit_profile_view(request):
-    """
-    Handles viewing and editing the user's profile.
-    """
+    """Handles viewing and editing the user's profile."""
     if request.method == 'POST':
         form = UserUpdateForm(request.POST, instance=request.user)
         if form.is_valid():
