@@ -2,8 +2,6 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
-from .forms import PostForm, UserUpdateForm, CommentForm
-from .models import Post, Comment
 from django.views.generic import (
     ListView,
     DetailView,
@@ -13,16 +11,33 @@ from django.views.generic import (
 )
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.urls import reverse_lazy, reverse
-from django.http import HttpResponseForbidden
+from django.db.models import Q
+from .forms import PostForm, UserUpdateForm, CommentForm
+from .models import Post, Comment
 
 class PostListView(ListView):
     """
-    Displays a list of all published blog posts.
+    Displays a list of all published blog posts, with search and tag filtering.
     """
     model = Post
     template_name = 'blog/post_list.html'
     context_object_name = 'posts'
     ordering = ['-date_posted']
+
+    def get_queryset(self):
+        """
+        Overrides the queryset to handle search queries.
+        """
+        queryset = super().get_queryset()
+        query = self.request.GET.get('q')
+        if query:
+            # Use Q objects to perform a search across multiple fields
+            queryset = queryset.filter(
+                Q(title__icontains=query) |
+                Q(content__icontains=query) |
+                Q(tags__name__icontains=query)
+            ).distinct()
+        return queryset
 
 class PostDetailView(DetailView):
     """
@@ -109,6 +124,18 @@ class CommentDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
     def get_success_url(self):
         comment = self.get_object()
         return reverse_lazy('post-detail', kwargs={'pk': comment.post.pk})
+
+def posts_by_tag(request, tag_name):
+    """
+    Displays posts filtered by a specific tag.
+    """
+    posts = Post.objects.filter(tags__name__in=[tag_name]).order_by('-date_posted')
+    context = {
+        'posts': posts,
+        'tag_name': tag_name
+    }
+    return render(request, 'blog/tagged_posts.html', context)
+
 
 # The following functions are still needed for authentication
 def register_view(request):
