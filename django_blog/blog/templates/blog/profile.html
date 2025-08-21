@@ -1,0 +1,11 @@
+{% extends "blog/base.html" %}
+{% block title %}Profile{% endblock %}
+{% block content %}
+    <div class="content-container">
+        <h1>{{ user.username }}'s Profile</h1>
+        <p>Email: {{ user.email }}</p>
+        <a href="{% url 'edit_profile' %}">Edit Profile</a>
+        <br>
+        <a href="{% url 'logout' %}">Logout</a>
+    </div>
+{% endblock %}

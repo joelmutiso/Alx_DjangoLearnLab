@@ -1,0 +1,15 @@
+{% extends "blog/base.html" %}
+{% block title %}Login{% endblock %}
+{% block content %}
+    <div class="form-container">
+        <h2>Login</h2>
+        <form method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit">Login</button>
+        </form>
+        {% if form.errors %}
+            <p class="error">Your username and password didn't match. Please try again.</p>
+        {% endif %}
+    </div>
+{% endblock %}
