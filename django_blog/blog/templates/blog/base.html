@@ -11,9 +11,9 @@
     <header>
         <nav>
             <ul>
-                <li><a href="{% url 'home' %}">Home</a></li>
-                <li><a href="{% url 'posts' %}">Blog Posts</a></li>
+                <li><a href="{% url 'post-list' %}">Home</a></li>
                 {% if user.is_authenticated %}
+                    <li><a href="{% url 'post-create' %}">Create Post</a></li>
                     <li><a href="{% url 'profile' %}">Profile</a></li>
                     <li>
                         <form action="{% url 'logout' %}" method="post" style="display: inline;">
@@ -40,3 +40,5 @@
     </footer>
 </body>
 </html>
+
+
