@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.forms import UserCreationForm
-from django.contrib.auth import login, logout, authenticate
+from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.views.generic import (
     ListView,
@@ -14,6 +14,7 @@ from django.urls import reverse_lazy, reverse
 from django.db.models import Q
 from .forms import PostForm, UserUpdateForm, CommentForm
 from .models import Post, Comment
+from taggit.models import Tag
 
 class PostListView(ListView):
     """
@@ -125,17 +126,30 @@ class CommentDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
         comment = self.get_object()
         return reverse_lazy('post-detail', kwargs={'pk': comment.post.pk})
 
-def posts_by_tag(request, tag_name):
+class PostByTagListView(ListView):
     """
-    Displays posts filtered by a specific tag.
+    A class-based view to filter and display posts by a specific tag.
     """
-    posts = Post.objects.filter(tags__name__in=[tag_name]).order_by('-date_posted')
-    context = {
-        'posts': posts,
-        'tag_name': tag_name
-    }
-    return render(request, 'blog/tagged_posts.html', context)
+    model = Post
+    template_name = 'blog/post_list.html'
+    context_object_name = 'posts'
+    paginate_by = 3
 
+    def get_queryset(self):
+        """
+        Overrides the default queryset to filter posts by the tag slug.
+        """
+        tag_slug = self.kwargs.get('tag_slug')
+        self.tag = get_object_or_404(Tag, slug=tag_slug)
+        return self.model.objects.filter(tags__in=[self.tag])
+
+    def get_context_data(self, **kwargs):
+        """
+        Adds the tag to the context for use in the template.
+        """
+        context = super().get_context_data(**kwargs)
+        context['tag'] = self.tag
+        return context
 
 # The following functions are still needed for authentication
 def register_view(request):

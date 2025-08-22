@@ -1,9 +1,22 @@
 {% extends "blog/base.html" %}
-{% block title %}All Posts{% endblock %}
+{% block title %}
+    {% if tag %}
+        Posts tagged with "{{ tag.name }}"
+    {% elif request.GET.q %}
+        Search Results for "{{ request.GET.q }}"
+    {% else %}
+        All Posts
+    {% endif %}
+{% endblock %}
+
 {% block content %}
-    <h1 class="page-title">Blog Posts</h1>
-    {% if request.GET.q %}
-        <p>Showing search results for: <strong>{{ request.GET.q }}</strong></p>
+    {% if tag %}
+        <h1 class="page-title">Posts tagged with "{{ tag.name }}"</h1>
+    {% elif request.GET.q %}
+        <h1 class="page-title">Search Results</h1>
+        <p>Showing results for: <strong>{{ request.GET.q }}</strong></p>
+    {% else %}
+        <h1 class="page-title">Blog Posts</h1>
     {% endif %}
 
     {% for post in posts %}
