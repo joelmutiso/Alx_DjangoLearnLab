@@ -1,4 +1,4 @@
-from rest_framework import generics, status
+from rest_framework import generics, status, permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny, IsAuthenticated 
@@ -6,6 +6,9 @@ from django.shortcuts import get_object_or_404
 from .serializers import UserRegistrationSerializer, UserLoginSerializer
 from rest_framework.authtoken.models import Token
 from .models import CustomUser
+
+# Import the built-in view for token generation
+from rest_framework.authtoken.views import ObtainAuthToken
 
 class RegisterView(generics.CreateAPIView):
     queryset = CustomUser.objects.all()
@@ -19,15 +22,18 @@ class RegisterView(generics.CreateAPIView):
         token, created = Token.objects.get_or_create(user=user)
         return Response({'token': token.key}, status=status.HTTP_201_CREATED)
 
-class LoginView(APIView):
-    permission_classes = [AllowAny]
+# Replace your custom LoginView with this
+class LoginView(ObtainAuthToken):
+    # DRF handles the post method for you
+    # The serializer is set by the parent class
     
     def post(self, request, *args, **kwargs):
-        serializer = UserLoginSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        user = serializer.validated_data['user']
-        token, created = Token.objects.get_or_create(user=user)
-        return Response({'token': token.key})
+        response = super().post(request, *args, **kwargs)
+        if response.status_code == status.HTTP_200_OK:
+            # You can add custom logic here if needed
+            return response
+        return Response({'error': 'Invalid credentials'}, status=status.HTTP_400_BAD_REQUEST)
+
 
 class FollowUserView(generics.GenericAPIView):
     permission_classes = [permissions.IsAuthenticated] 
