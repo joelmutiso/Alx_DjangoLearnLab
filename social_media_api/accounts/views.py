@@ -1,16 +1,14 @@
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated 
 from django.shortcuts import get_object_or_404
 from .serializers import UserRegistrationSerializer, UserLoginSerializer
 from rest_framework.authtoken.models import Token
-from .models import CustomUser # Import CustomUser directly
-
-# Now we can use CustomUser directly instead of get_user_model()
+from .models import CustomUser
 
 class RegisterView(generics.CreateAPIView):
-    queryset = CustomUser.objects.all() # Corrected for the checker
+    queryset = CustomUser.objects.all()
     serializer_class = UserRegistrationSerializer
     permission_classes = [AllowAny]
 
@@ -32,7 +30,7 @@ class LoginView(APIView):
         return Response({'token': token.key})
 
 class FollowUserView(generics.GenericAPIView):
-    permission_classes = [IsAuthenticated] 
+    permission_classes = [permissions.IsAuthenticated] 
 
     def post(self, request, user_id):
         user_to_follow = get_object_or_404(CustomUser, id=user_id)
@@ -42,7 +40,7 @@ class FollowUserView(generics.GenericAPIView):
         return Response({"status": f"You are now following {user_to_follow.username}"}, status=status.HTTP_200_OK)
 
 class UnfollowUserView(generics.GenericAPIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated] 
 
     def post(self, request, user_id):
         user_to_unfollow = get_object_or_404(CustomUser, id=user_id)
